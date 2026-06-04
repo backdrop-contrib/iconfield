@@ -1,0 +1,496 @@
+<?php
+/**
+ * @file
+ * Icon Field browser dialog and hook implementations.
+ */
+
+require_once __DIR__ . '/iconfield.field.inc';
+
+/**
+ * Implements hook_menu().
+ */
+function iconfield_menu() {
+  $items['iconfield/browser-dialog'] = array(
+    'title' => 'Icon browser',
+    'page callback' => 'iconfield_browser_get_form',
+    // We can not deny access at this point.
+    'access callback' => TRUE,
+    'delivery callback' => 'backdrop_json_deliver',
+    'theme callback' => 'ajax_base_page_theme',
+  );
+  $items['iconfield/browser-dialog/ajaxpager'] = array(
+    'title' => 'You should never see this title',
+    'page callback' => 'iconfield_browser_pager_callback',
+    'access callback' => TRUE,
+    'delivery callback' => 'backdrop_json_deliver',
+    'theme callback' => 'ajax_base_page_theme',
+  );
+  // Update field widget form based on POST.
+  $items['iconfield/ajax'] = array(
+    'page callback' => 'iconfield_ajax_insert',
+    'access callback' => TRUE,
+    'delivery callback' => 'backdrop_json_deliver',
+    'theme callback' => 'ajax_base_page_theme',
+  );
+
+  // Demo page.
+  $items['testedas'] = array(
+    'title' => 'Test browsing and inserting',
+    'page callback' => '_iconfield_test_page',
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+/**
+ * Custom page callback.
+ *
+ * Wrapper around backdrop_get_form() to do some extra access checks before
+ * building the form, which also populates tempstore.
+ */
+function iconfield_browser_get_form() {
+  $compare_token = iconfield_get_dialog_token();
+  if (!user_access('access content') || !isset($_GET['token']) || $_GET['token'] != $compare_token) {
+    backdrop_set_title(t('Access denied'));
+    $_POST['dialogOptions']['width'] = 480;
+    $render['denied'] = array(
+      '#markup' => system_403(),
+    );
+    return $render;
+  }
+  else {
+    // Token no longer needed. Do not expose via pager URLs.
+    unset($_GET['token']);
+    return backdrop_get_form('iconfield_browser_form_callback');
+  }
+}
+
+/**
+ * Custom form callback, the initial dialog content, populates tempstore.
+ */
+function iconfield_browser_form_callback(array $form, array $form_state) {
+  $module_path = backdrop_get_path('module', 'iconfield');
+  $form['#attached']['css'][] = $module_path . '/css/iconfield.css';
+  $form['#attributes']['class'][] = 'iconfield-dialog-form';
+  $form['#attributes']['id'] = 'iconfield-browser-dialog-form';
+  $params = _iconfield_get_form_params($form_state, TRUE);
+
+  $form['icon_filters'] = array(
+    '#type' => 'container',
+    '#attributes' => array(
+      'class' => array('icon-browser-filters-wrapper'),
+    ),
+  );
+  // If no module implements that hook, core is the only provider, so this form
+  // item would be pointless.
+  // @todo this form could be more useful if core added "provider" to details.
+  $form['icon_filters']['project_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Project type'),
+    '#options' => array(
+      'any' => t('Any'),
+      'core' => t('Core'),
+      'module' => t('Module'),
+    ),
+    '#default_value' => $params['project_type'],
+    '#access' => (bool) module_implements('icon_info'),
+  );
+  $form['icon_filters']['style'] = array(
+    '#type' => 'select',
+    '#title' => t('Style'),
+    '#options' => array(
+      'any' => t('Any'),
+      'fill' => t('Fill'),
+      'outline' => t('Outline (or other)'),
+    ),
+    '#default_value' => $params['style'],
+  );
+  $form['icon_filters']['keyword'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Keyword'),
+    '#default_value' => $params['keyword'],
+    '#size' => 16,
+  );
+  $form['icon_filters']['button_wrapper'] = array(
+    '#type' => 'container',
+  );
+  $form['icon_filters']['button_wrapper']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Filter'),
+    '#name' => 'icon-filter-submit',
+    '#ajax' => array(
+      'callback' => 'iconfield_browser_form_callback_ajax',
+    ),
+  );
+  $form['icon_filters']['button_wrapper']['reset'] = array(
+    '#type' => 'submit',
+    '#value' => t('Reset'),
+    '#name' => 'icon-filter-reset',
+    '#ajax' => array(
+      'callback' => 'iconfield_browser_form_callback_ajax',
+    ),
+  );
+
+  $form['content_wrapper'] = array(
+    '#type' => 'container',
+    '#attributes' => array(
+      'id' => 'iconfield-content-wrapper',
+    ),
+  );
+  $form['content_wrapper']['content'] = array(
+    '#type' => 'markup',
+    '#markup' => _iconfield_get_content_markup($params),
+  );
+
+  // Store selected icon name.
+  $form['selected_icon'] = array(
+    '#type' => 'hidden',
+    '#value' => '',
+  );
+
+  // Dialog buttons.
+  $form['actions']['#type'] = 'actions';
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Insert'),
+    '#name' => 'iconfield-dialog-submit',
+    '#ajax' => array(
+      'callback' => 'iconfield_dialog_close',
+    ),
+    '#attributes' => array('class' => array('button-primary')),
+  );
+  $form['actions']['cancel'] = array(
+    '#type' => 'submit',
+    '#value' => t('Cancel'),
+    '#ajax' => array(
+      'callback' => 'iconfield_dialog_close',
+    ),
+    '#name' => 'iconfield-dialog-cancel',
+  );
+
+  // Provide as setting instead of fiddling with $_GET, from which pagers derive
+  // their base URL. Neither system/ajas nor iconfield/browser-dialog would make
+  // sense.
+  // The latter would create new records in tempstore on every pager click.
+  // @see Backdrop.behaviors.iconfieldAjax.attach
+  $setting = array(
+    'iconfield' => array(
+      'pagerBaseUrl' => url('iconfield/browser-dialog/ajaxpager'),
+    ),
+  );
+  $form['#attached']['js'][] = array('type' => 'setting', 'data' => $setting);
+  $form['#attached']['js'][] = $module_path . '/js/iconfield-ajax.js';
+
+  return $form;
+}
+
+/**
+ * Form submission of filter form, replaces the whole form, updates tempstore.
+ */
+function iconfield_browser_form_callback_ajax(array $form, array $form_state) {
+  if (!empty($form_state['triggering_element']) && $form_state['triggering_element']['#name'] == 'icon-filter-reset') {
+    $params = _iconfield_get_form_params($form_state, TRUE);
+    $form['icon_filters']['project_type']['#value'] = $params['project_type'];
+    $form['icon_filters']['style']['#value'] = $params['style'];
+    $form['icon_filters']['keyword']['#value'] = $params['keyword'];
+  }
+  else {
+    $params = _iconfield_get_form_params($form_state);
+  }
+
+  $form['content_wrapper']['content']['#markup'] = _iconfield_get_content_markup($params);
+
+  $commands = array();
+  $commands[] = ajax_command_replace('#iconfield-browser-dialog-form', backdrop_render($form));
+  return array(
+    '#type' => 'ajax',
+    '#commands' => $commands,
+  );
+}
+
+/**
+ * Triggered by pager link clicks.
+ *
+ * No form rebuild, only the content section replaced.
+ */
+function iconfield_browser_pager_callback() {
+  // Get the cached form from tempstore.
+  list($form, $form_state, $form_id, $form_build_id, $commands) = ajax_get_form();
+
+  $params = _iconfield_get_form_params($form_state);
+  $form['content_wrapper']['content']['#markup'] = _iconfield_get_content_markup($params);
+
+  // Replace only what we update, not the whole form.
+  $commands[] = ajax_command_replace('#iconfield-content-wrapper', backdrop_render($form['content_wrapper']));
+  return array(
+    '#type' => 'ajax',
+    '#commands' => $commands,
+  );
+}
+
+/**
+ * Ajax callback triggered by dialog buttons, common for submit and abort.
+ */
+function iconfield_dialog_close(array $form, array $form_state) {
+  $commands = array();
+  if ($form_state['triggering_element']['#name'] == 'iconfield-dialog-submit') {
+    $icon_key = $form_state['input']['selected_icon'];
+    // ^^ values array not populated from hidden element? ajax callbacks? hmmm.
+    if (!empty($icon_key)) {
+      $path = icon_get_path($icon_key);
+      if (!empty($path)) {
+        // Do not use icon_get_all_details() with name as param for now.
+        // @see https://github.com/backdrop/backdrop-issues/issues/7142
+        // @todo solution merged for 1.34.1, calling with param is usable then.
+        $all_icons = icon_get_all_details();
+
+        $values = $all_icons[$icon_key];
+        $values['path'] = $path;
+        $values['url'] = base_path() . $path;
+        $values['icon_svg'] = icon($icon_key);
+        $commands[] = array(
+          'command' => 'iconFieldDialogSave',// @see js/iconfield-ajax.js
+          'values' => $values,
+        );
+      }
+    }
+  }
+
+  // Apparently the dialog buttons don't trigger form cache cleanup.
+  // Note: the top right close button still does no cleanup.
+  // @see https://github.com/backdrop/backdrop-issues/issues/7137
+  tempstore_clear('form', $form_state['values']['form_build_id']);
+  tempstore_clear('form_state', $form_state['values']['form_build_id']);
+
+  $commands[] = ajax_command_close_modal_dialog();
+  $commands[] = ajax_command_html('#backdrop-modal', '');
+  return array(
+    '#type' => 'ajax',
+    '#commands' => $commands,
+  );
+}
+
+/**
+ * Build icon and pager content, render, return as string.
+ *
+ * @param array $params
+ *   Keyed array of parameters.
+ *
+ * @return string
+ *   Rendered content
+ */
+function _iconfield_get_content_markup(array $params) {
+  $all_icons = icon_get_all_details();
+  $results = array();
+  foreach ($all_icons as $icon) {
+    if ($icon['project_type'] == 'theme') {
+      // No way to handle theme icons reliably (frontend / backend theme).
+      continue;
+    }
+    if ($params['project_type'] != 'any' && $icon['project_type'] != $params['project_type']) {
+      continue;
+    }
+    if ($params['style'] != 'any' && $icon['style'] != $params['style']) {
+      continue;
+    }
+    if ($params['keyword'] && stripos($icon['name'], $params['keyword']) === FALSE) {
+      continue;
+    }
+    $results[] = $icon;
+  }
+  $paged_results = array();
+  if ($results) {
+    $icons_per_page = 80;// @todo could this number get exposed?
+    $current_page = pager_default_initialize(count($results), $icons_per_page);
+    $current_page = pager_find_page(0);// @todo is this needed?
+    $chunks = array_chunk($results, $icons_per_page, TRUE);
+    $paged_results = $chunks[$current_page];
+  }
+  $render = array();
+  $render['icons'] = array(
+    '#type' => 'markup',
+    '#markup' => theme('system_icon_browser_form_icons', array('icons' => $paged_results)),
+  );
+  $render['pager'] = array(
+    '#type' => 'container',
+    '#attributes' => array('class' => array('icon-browser-pager-wrapper')),
+  );
+  $render['pager']['pager'] = array(
+    '#type' => 'markup',
+    '#markup' => theme('pager', array('quantity' => 7)),
+  );
+  return backdrop_render($render);
+}
+
+/**
+ * Helper function to extract parameters.
+ *
+ * @param array $form_state
+ *   Form API state array.
+ * @param bool $reset
+ *   Whether to return initial values or not.
+ *
+ * @return array
+ *   Parameter array.
+ */
+function _iconfield_get_form_params(array $form_state, $reset = FALSE) {
+  $params = array(
+    'project_type' => 'any',
+    'style' => 'any',
+    'keyword' => '',
+  );
+  if ($reset) {
+    return $params;
+  }
+
+  // Preferred, but "values" is not available when using the pager.
+  if (isset($form_state['values'])) {
+    foreach ($params as $key => $value) {
+      if (!empty($form_state['values'][$key])) {
+        $params[$key] = $form_state['values'][$key];
+      }
+    }
+  }
+  // Raw values from POST, so sanitize.
+  elseif (!empty($form_state['input'])) {
+    foreach ($params as $key => $value) {
+      if (!empty($form_state['input'][$key])) {
+        $params[$key] = filter_xss($form_state['input'][$key]);
+      }
+    }
+  }
+  return $params;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function iconfield_theme($existing, $type, $theme, $path) {
+  return array(
+    'icon_browser_open_link' => array(
+      'variables' => array(
+        'additional_attributes' => array(),
+      ),
+    ),
+  );
+}
+
+/**
+ * Theme callback to build a link that opens an icon browser.
+ *
+ * Requirement: backdrop.ajax must be loaded.
+ */
+function theme_icon_browser_open_link(array $variables) {
+  // jQuery UI dialog settings.
+  $dialog_options = array(
+    'classes' => array('ui-dialog' => 'iconfield-dialog'),
+  );
+  $attributes = array(
+    'class' => array('use-ajax', 'button', 'iconbrowser-opener'),
+    'data-dialog' => TRUE,
+    'data-dialog-options' => json_encode($dialog_options),
+  );
+  $attributes += $variables['additional_attributes'];
+  $token = iconfield_get_dialog_token();
+  $link = l(t('Browse icons'), 'iconfield/browser-dialog', array(
+    'attributes' => $attributes,
+    'query' => array('token' => $token),
+  ));
+  return $link;
+}
+
+/**
+ * Build an access token for opening the icon browser's dialog form.
+ *
+ * @return string
+ *   A token.
+ */
+function iconfield_get_dialog_token() {
+  $token = &backdrop_static(__FUNCTION__);
+  if (!isset($token)) {
+    // Our options for data are pretty sparse, as we have no context. Not even
+    // current path would be usable. So we pick some arbitrary data.
+    global $user;
+    $site_config = config('system.core');
+    $data = array(
+      'iconfield/browser-dialog',
+      $site_config->getTranslated('site_name'),
+      $site_config->get('site_mail'),
+      $user->uid,
+      // So it changes once a day.
+      format_date(REQUEST_TIME, 'custom', 'Y-m-d'),
+    );
+    $token = backdrop_hmac_base64(implode('-', $data), backdrop_get_private_key() . backdrop_get_hash_salt());
+  }
+  return $token;
+}
+
+
+/**
+ * Demo page, @todo remove.
+ */
+function _iconfield_test_page() {
+  backdrop_add_library('system', 'backdrop.ajax');
+  // Handles browser options via data attribute.
+  // Lets attributes define what to put where when closing.
+  backdrop_add_js(backdrop_get_path('module', 'iconfield') . '/js/iconfield-demo.js');
+  $content = array();
+  $dialog_options = array(
+    'classes' => array('ui-dialog' => 'iconfield-dialog'),
+  );
+
+  // Dynamic preview (SVG).
+  $insert_options = array(
+    'targetSelector' => '#mypreview',
+    'insertType' => 'icon_svg',
+  );
+  $content['preview'] = array(
+    '#type' => 'markup',
+    '#markup' => '<div id="mypreview"><p>Empty preview</p></div>',
+  );
+  $content['link1'] = array(
+    '#type' => 'markup',
+    '#markup' => theme('icon_browser_open_link', array(
+      'additional_attributes' => array(
+        'data-insert-options' => json_encode($insert_options),
+      ),
+    )),
+  );
+
+  // Form item.
+  $content['dummy_item'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Dummy input field (without form)',
+    '#attributes' => array(
+      'class' => array('dummy-item'),
+    ),
+  );
+  $insert_options = array(
+    'targetSelector' => '.dummy-item',
+    'insertType' => 'project_icon_key',
+  );
+  $content['link2'] = array(
+    '#type' => 'markup',
+    '#markup' => theme('icon_browser_open_link', array(
+      'additional_attributes' => array(
+        'data-insert-options' => json_encode($insert_options),
+      ),
+    )),
+  );
+
+  // Broken example.
+  $link = l('Browse icons', 'iconfield/browser-dialog', array(
+    'attributes' => array(
+      'class' => array('use-ajax', 'button', 'iconbrowser-opener'),
+      'data-dialog' => TRUE,
+      'data-dialog-options' => json_encode($dialog_options),
+      'data-insert-options' => json_encode($insert_options),
+    ),
+  ));
+  $content['link3'] = array(
+    '#type' => 'markup',
+    '#markup' => '<div><p>Will not work (missing token):</p>' . $link . '</div>',
+  );
+
+  return $content;
+}

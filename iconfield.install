@@ -1,0 +1,26 @@
+<?php
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function iconfield_field_schema($field) {
+  return array(
+    'columns' => array(
+      'key' => array(
+        'description' => 'The icon key.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ),
+      'alt' => array(
+        'description' => "Alternative text, for the icon's 'title' tag.",
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => FALSE,
+      ),
+    ),
+  );
+}
