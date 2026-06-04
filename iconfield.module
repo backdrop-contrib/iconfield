@@ -34,7 +34,7 @@ function iconfield_menu() {
   );
 
   // Demo page.
-  $items['testedas'] = array(
+  $items['icon-browser-demo'] = array(
     'title' => 'Test browsing and inserting',
     'page callback' => '_iconfield_test_page',
     'access callback' => TRUE,
