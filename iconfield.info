@@ -4,3 +4,4 @@ description = Provides a field type, widget and formatter for icons, and an icon
 backdrop = 1.x
 
 stylesheets[all][] = css/iconfield-display.css
+maintainers[indigoxela] = indigoxela
