@@ -62,7 +62,7 @@
         };
         let backdropAjax = new Backdrop.ajax('iconfield-browser-dialog-form', this, options);
         // Setting POST data has to happen "last minute" to reliably get the
-        // form_build_id.
+        // most recent data.
         backdropAjax.beforeSerialize = function (element, options) {
           options.data = Backdrop.behaviors.iconfieldAjax.getSubmitValues();
           // As we override this method, we have to run the original in
