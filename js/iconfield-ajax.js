@@ -28,16 +28,24 @@
     attach: function (context) {
       // A11Y, keyboard nav and aria roles.
       $('.icon-browser-list').once('browser-list-a11y', function () {
-        $(this).attr('aria-role', 'listbox');
+        $(this).attr({
+          'role': 'listbox',
+          'aria-label': Backdrop.t('Pick an icon')
+        });
         $(this).find('[data-icon-name]').each(function () {
-          $(this).attr('tabindex', 0);
-          $(this).attr('aria-role', 'option');
-          $(this).attr('aria-selected', 'false');
+          $(this).attr({
+            'tabindex': 0,
+            'role': 'option',
+            'aria-selected': 'false'
+          });
         });
       });
       // Original (hidden) form buttons, not the dialog buttons.
       $('form.iconfield-dialog-form .form-actions input').each(function () {
-        $(this).attr('tabindex', -1);
+        $(this).attr({
+          'tabindex': -1,
+          'aria-hidden': 'true'
+        });
       });
 
       // Handle selection.
