@@ -20,12 +20,11 @@
 .iconfield-dialog-form .icon-browser-list {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 1rem;
   margin: 2rem 0;
 }
 .iconfield-dialog-form .icon-wrapper {
-  width: 6.68rem;
+  width: 6.62rem;
   min-width: 5rem;
   font-size: .95rem;
   text-align: center;
