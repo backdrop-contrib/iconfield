@@ -49,13 +49,26 @@
       });
 
       // Handle selection.
-      $('.icon-browser-list .icon-wrapper').on('click keydown', function (event) {
-        if (event.type === 'keydown' && event.which !== 13) {
-          return;
-        }
-        $('.icon-browser-list .icon-wrapper[aria-selected="true"]').attr('aria-selected', 'false');
-        $(this).attr('aria-selected', 'true');
-        $('input[name="selected_icon"]').val(this.dataset.iconName);
+      $('.icon-browser-list').once('browser-list-events', function () {
+        $(this).find('[data-icon-name]').each(function () {
+          $(this).on('click keydown', function (event) {
+            if (event.type === 'keydown' && event.which !== 13) {
+              return;
+            }
+            // Already selected, second "enter" submits.
+            if ($(this).attr('aria-selected') === 'true' && event.type === 'keydown') {
+              $('.ui-dialog-buttonset .button-primary').trigger('click');
+            }
+            $('.icon-browser-list .icon-wrapper[aria-selected="true"]').attr('aria-selected', 'false');
+            $(this).attr('aria-selected', 'true');
+            $('input[name="selected_icon"]').val(this.dataset.iconName);
+          })
+          .on('dblclick', function (event) {
+            // Double click selects and submits on one go.
+            $('input[name="selected_icon"]').val(this.dataset.iconName);
+            $('.ui-dialog-buttonset .button-primary').trigger('click');
+          });
+        });
       });
 
       // Pager and AJAX.
