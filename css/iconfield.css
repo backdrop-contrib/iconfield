@@ -35,7 +35,7 @@
   width: 2.5rem;
   margin: 0 auto;
 }
-.icon-browser-list .icon-wrapper.selected {
+.icon-browser-list .icon-wrapper[aria-selected="true"] {
   outline: 2px solid;
   border-radius: 3px;
 }

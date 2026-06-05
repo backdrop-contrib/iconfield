@@ -26,9 +26,14 @@
       return submit;
     },
     attach: function (context) {
-      // Keyboard navigation.
-      $('.icon-browser-list').once('keyboard-nav').find('[data-icon-name]').each(function () {
-        $(this).attr('tabindex', 0);
+      // A11Y, keyboard nav and aria roles.
+      $('.icon-browser-list').once('browser-list-a11y', function () {
+        $(this).attr('aria-role', 'listbox');
+        $(this).find('[data-icon-name]').each(function () {
+          $(this).attr('tabindex', 0);
+          $(this).attr('aria-role', 'option');
+          $(this).attr('aria-selected', 'false');
+        });
       });
       // Original (hidden) form buttons, not the dialog buttons.
       $('form.iconfield-dialog-form .form-actions input').each(function () {
@@ -40,8 +45,8 @@
         if (event.type === 'keydown' && event.which !== 13) {
           return;
         }
-        $('.icon-browser-list .icon-wrapper.selected').removeClass('selected');
-        $(this).addClass('selected');
+        $('.icon-browser-list .icon-wrapper[aria-selected="true"]').attr('aria-selected', 'false');
+        $(this).attr('aria-selected', 'true');
         $('input[name="selected_icon"]').val(this.dataset.iconName);
       });
 
