@@ -263,6 +263,7 @@ function iconfield_field_formatter_settings_form($field, $instance, $view_mode, 
     '#max' => 600,
     '#default_value' => $settings['icon_size'],
     '#required' => TRUE,
+    '#field_suffix' => 'px',
   );
   $element['icon_align'] = array(
     '#type' => 'select',
