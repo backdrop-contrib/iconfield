@@ -10,6 +10,12 @@ require_once __DIR__ . '/iconfield.field.inc';
  * Implements hook_menu().
  */
 function iconfield_menu() {
+  $items['admin/config/user-interface/iconbrowser-dialog'] = array(
+    'title' => 'Icon browser dialog settings',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('iconfield_browser_settings_form'),
+    'access arguments' => array('administer site configuration'),
+  );
   $items['iconfield/browser-dialog'] = array(
     'title' => 'Icon browser',
     'page callback' => 'iconfield_browser_get_form',
@@ -93,7 +99,7 @@ function iconfield_browser_form_callback(array $form, array $form_state) {
       'module' => t('Module'),
     ),
     '#default_value' => $params['project_type'],
-    '#access' => (bool) module_implements('icon_info'),
+    '#access' => (module_implements('icon_info') && config_get('iconfield.settings', 'project_type_default') == 'any'),
   );
   $form['icon_filters']['style'] = array(
     '#type' => 'select',
@@ -300,7 +306,7 @@ function _iconfield_get_content_markup(array $params) {
   }
   $paged_results = array();
   if ($results) {
-    $icons_per_page = 80;// @todo could this number get exposed?
+    $icons_per_page = config_get('iconfield.settings', 'icons_per_page');
     $current_page = pager_default_initialize(count($results), $icons_per_page);
     $current_page = pager_find_page(0);// @todo is this needed?
     $chunks = array_chunk($results, $icons_per_page, TRUE);
@@ -335,7 +341,7 @@ function _iconfield_get_content_markup(array $params) {
  */
 function _iconfield_get_form_params(array $form_state, $reset = FALSE) {
   $params = array(
-    'project_type' => 'any',
+    'project_type' => config_get('iconfield.settings', 'project_type_default'),
     'style' => 'any',
     'keyword' => '',
   );
@@ -425,6 +431,43 @@ function iconfield_get_dialog_token() {
   return $token;
 }
 
+/**
+ * Form callback for the browser dialog settings form.
+ */
+function iconfield_browser_settings_form(array $form, array &$form_state) {
+  $form['#config'] = 'iconfield.settings';
+  $config = config('iconfield.settings');
+  $form['project_type_default'] = array(
+    '#title' => t('Project type available'),
+    '#type' => 'select',
+    '#description' => t('If project type is limited, the form item for project type will be hidden in the dialog filter form. Limiting only makes sense if there are multiple icon providers.'),
+    '#options' => array(
+      'any' => t('Any'),
+      'core' => t('Core'),
+      'module' => t('Module'),
+    ),
+    '#default_value' => $config->get('project_type_default'),
+  );
+  $form['icons_per_page'] = array(
+    '#title' => t('Icons per page'),
+    '#type' => 'number',
+    '#min' => 20,
+    '#max' => 100,
+    '#default_value' => $config->get('icons_per_page'),
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_config_info().
+ */
+function iconfield_config_info() {
+  $prefixes['iconfield.settings'] = [
+    'label' => t('Icon (field) browser dialog'),
+    'group' => t('Configuration'),
+  ];
+  return $prefixes;
+}
 
 /**
  * Demo page, @todo remove.

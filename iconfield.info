@@ -5,3 +5,4 @@ backdrop = 1.x
 
 stylesheets[all][] = css/iconfield-display.css
 maintainers[indigoxela] = indigoxela
+configure = admin/config/user-interface/iconbrowser-dialog
