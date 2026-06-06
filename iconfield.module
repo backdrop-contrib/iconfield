@@ -107,7 +107,7 @@ function iconfield_browser_form_callback(array $form, array $form_state) {
   );
   $form['icon_filters']['keyword'] = array(
     '#type' => 'textfield',
-    '#title' => t('Keyword'),
+    '#title' => t('Name contains'),
     '#default_value' => $params['keyword'],
     '#size' => 16,
   );
