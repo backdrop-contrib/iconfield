@@ -1,8 +1,13 @@
+.icon-wrapper {
+  display: block;
+}
 .icon-wrapper .icon {
   max-width: 100%;
+  vertical-align: bottom;
 }
 .icon-wrapper.align-center {
-  text-align: center;
+  display: flex;
+  justify-content: center;
   margin-bottom: .5em;
 }
 .icon-wrapper.align-left {
@@ -11,5 +16,5 @@
 }
 .icon-wrapper.align-right {
   float: right;
-  margin: 0 .5em 0 1em;
+  margin: 0 0 .5em 1em;
 }

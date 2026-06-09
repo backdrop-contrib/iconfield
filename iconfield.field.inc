@@ -325,10 +325,6 @@ function iconfield_field_formatter_view($entity_type, $entity, $field, $instance
       $icon_options['alt'] = check_plain($item['alt']);
     }
     $icon = icon($item['key'], $icon_options);
-    if ($settings['icon_link']) {
-      $uri = entity_uri($entity_type, $entity);
-      $icon = l($icon, $uri['path'], array('html' => TRUE));
-    }
     $classes = array('icon-wrapper');
     if ($settings['icon_align']) {
       $classes[] = 'align-' . $settings['icon_align'];
@@ -340,7 +336,12 @@ function iconfield_field_formatter_view($entity_type, $entity, $field, $instance
         $classes[] = backdrop_clean_css_identifier($class);
       }
     }
-    $element[$delta] = array('#markup' => '<div class="' . implode(' ', $classes) . '">' . $icon . '</div>');
+    $markup = '<span class="' . implode(' ', $classes) . '">' . $icon . '</span>';
+    if ($settings['icon_link']) {
+      $uri = entity_uri($entity_type, $entity);
+      $markup = l($markup, $uri['path'], array('html' => TRUE));
+    }
+    $element[$delta] = array('#markup' => $markup);
   }
 
   return $element;
