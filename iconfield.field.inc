@@ -334,7 +334,11 @@ function iconfield_field_formatter_view($entity_type, $entity, $field, $instance
       $classes[] = 'align-' . $settings['icon_align'];
     }
     if ($settings['icon_wrapper_class']) {
-      $classes[] = check_plain($settings['icon_wrapper_class']);
+      $custom_classes = explode(' ', $settings['icon_wrapper_class']);
+      array_filter($custom_classes);
+      foreach ($custom_classes as $class) {
+        $classes[] = backdrop_clean_css_identifier($class);
+      }
     }
     $element[$delta] = array('#markup' => '<div class="' . implode(' ', $classes) . '">' . $icon . '</div>');
   }
