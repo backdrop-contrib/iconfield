@@ -278,7 +278,7 @@ function iconfield_field_formatter_settings_form($field, $instance, $view_mode, 
   );
   $element['icon_wrapper_class'] = array(
     '#type' => 'textfield',
-    '#title' => t('Additional CSS class(es) on wrapper div'),
+    '#title' => t('Additional CSS class(es) on wrapper span'),
     '#default_value' => $settings['icon_wrapper_class'],
   );
   $element['icon_link'] = array(
@@ -299,7 +299,7 @@ function iconfield_field_formatter_settings_summary($field, $instance, $view_mod
   $summary[] = t('Icon size') . ': ' . $settings['icon_size'];
   $summary[] = t('Icon alignment') . ': ' . $settings['icon_align'];
   if ($settings['icon_wrapper_class']) {
-    $summary[] = t('Additional CSS class(es) on wrapper div') . ': ' . check_plain($settings['icon_wrapper_class']);
+    $summary[] = t('Additional CSS class(es) on wrapper span') . ': ' . check_plain($settings['icon_wrapper_class']);
   }
   $yes_no = ($settings['icon_link']) ? t('Yes') : t('No');
   $summary[] = t('Link icon to content') . ': ' . $yes_no;
