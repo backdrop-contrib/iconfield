@@ -6,9 +6,8 @@
   vertical-align: bottom;
 }
 .icon-wrapper.align-center {
-  display: flex;
-  justify-content: center;
-  margin-bottom: .5em;
+  display: table;
+  margin: 0 auto .5em;
 }
 .icon-wrapper.align-left {
   float: left;
