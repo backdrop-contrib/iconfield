@@ -233,8 +233,8 @@ function iconfield_browser_pager_callback() {
 function iconfield_dialog_close(array $form, array $form_state) {
   $commands = array();
   if ($form_state['triggering_element']['#name'] == 'iconfield-dialog-submit') {
+    // We have to rely on "input" instead of "values".
     $icon_key = $form_state['input']['selected_icon'];
-    // ^^ values array not populated from hidden element? ajax callbacks? hmmm.
     if (!empty($icon_key)) {
       $path = icon_get_path($icon_key);
       if (!empty($path)) {
