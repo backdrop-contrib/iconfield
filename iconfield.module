@@ -239,12 +239,7 @@ function iconfield_dialog_close(array $form, array $form_state) {
     if (!empty($icon_key)) {
       $path = icon_get_path($icon_key);
       if (!empty($path)) {
-        // Do not use icon_get_all_details() with name as param for now.
-        // @see https://github.com/backdrop/backdrop-issues/issues/7142
-        // @todo solution merged for 1.34.1, calling with param is usable then.
-        $all_icons = icon_get_all_details();
-
-        $values = $all_icons[$icon_key];
+        $values = icon_get_all_details($icon_key);
         $values['path'] = $path;
         $values['url'] = base_path() . $path;
         $values['icon_svg'] = icon($icon_key);

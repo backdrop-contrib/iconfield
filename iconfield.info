@@ -3,6 +3,8 @@ name = Icon Field
 description = Provides a field type, widget and formatter for icons, and an icon browser dialog.
 backdrop = 1.x
 
+dependencies[] = system (>=1.34.1)
+
 stylesheets[all][] = css/iconfield-display.css
 maintainers[indigoxela] = indigoxela
 configure = admin/config/user-interface/iconbrowser-dialog
