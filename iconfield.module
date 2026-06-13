@@ -39,12 +39,6 @@ function iconfield_menu() {
     'theme callback' => 'ajax_base_page_theme',
   );
 
-  // Demo page.
-  $items['icon-browser-demo'] = array(
-    'title' => 'Test browsing and inserting',
-    'page callback' => '_iconfield_test_page',
-    'access callback' => TRUE,
-  );
   return $items;
 }
 
@@ -467,73 +461,4 @@ function iconfield_config_info() {
     'group' => t('Configuration'),
   ];
   return $prefixes;
-}
-
-/**
- * Demo page, @todo remove.
- */
-function _iconfield_test_page() {
-  backdrop_add_library('system', 'backdrop.ajax');
-  // Handles browser options via data attribute.
-  // Lets attributes define what to put where when closing.
-  backdrop_add_js(backdrop_get_path('module', 'iconfield') . '/js/iconfield-demo.js');
-  $content = array();
-  $dialog_options = array(
-    'classes' => array('ui-dialog' => 'iconfield-dialog'),
-  );
-
-  // Dynamic preview (SVG).
-  $insert_options = array(
-    'targetSelector' => '#mypreview',
-    'insertType' => 'icon_svg',
-  );
-  $content['preview'] = array(
-    '#type' => 'markup',
-    '#markup' => '<div id="mypreview"><p>Empty preview</p></div>',
-  );
-  $content['link1'] = array(
-    '#type' => 'markup',
-    '#markup' => theme('icon_browser_open_link', array(
-      'additional_attributes' => array(
-        'data-insert-options' => json_encode($insert_options),
-      ),
-    )),
-  );
-
-  // Form item.
-  $content['dummy_item'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Dummy input field (without form)',
-    '#attributes' => array(
-      'class' => array('dummy-item'),
-    ),
-  );
-  $insert_options = array(
-    'targetSelector' => '.dummy-item',
-    'insertType' => 'project_icon_key',
-  );
-  $content['link2'] = array(
-    '#type' => 'markup',
-    '#markup' => theme('icon_browser_open_link', array(
-      'additional_attributes' => array(
-        'data-insert-options' => json_encode($insert_options),
-      ),
-    )),
-  );
-
-  // Broken example.
-  $link = l('Browse icons', 'iconfield/browser-dialog', array(
-    'attributes' => array(
-      'class' => array('use-ajax', 'button', 'iconbrowser-opener'),
-      'data-dialog' => TRUE,
-      'data-dialog-options' => json_encode($dialog_options),
-      'data-insert-options' => json_encode($insert_options),
-    ),
-  ));
-  $content['link3'] = array(
-    '#type' => 'markup',
-    '#markup' => '<div><p>Will not work (missing token):</p>' . $link . '</div>',
-  );
-
-  return $content;
 }
