@@ -83,12 +83,13 @@ function iconfield_field_widget_form(&$form, &$form_state, $field, $instance, $l
 
   $icon_key = isset($items[$delta]['key']) ? $items[$delta]['key'] : '';
   // Build a consistent id not affected by ajax updates.
-  $id_parts = array(
-    $instance['entity_type'],
-    $instance['bundle'],
-    $instance['field_name'],
-    $delta,
-  );
+  $id_parts = $form['#parents'];
+  // Parents is often empty, but is important for nested structures like with
+  // Paragraphs.
+  $id_parts[] = $instance['entity_type'];
+  $id_parts[] = $instance['bundle'];
+  $id_parts[] = $instance['field_name'];
+  $id_parts[] = $delta;
   $id_base = implode('-', $id_parts);
   $element['key'] = array(
     '#type' => 'hidden',
